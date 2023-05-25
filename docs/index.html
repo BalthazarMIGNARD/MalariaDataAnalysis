@@ -16,15 +16,23 @@
       padding: 0;
     }
     li {
-      display: inline;
-      margin-right: 10px;
+      margin-bottom: 10px;
     }
-    a {
+    .graph-button {
+      display: block;
+      width: 200px;
+      padding: 10px;
+      text-align: center;
+      background-color: #0366d6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
       text-decoration: none;
-      color: #0366d6;
+      margin-bottom: 10px;
     }
-    p {
-      margin-top: 20px;
+    .graph-description {
+      margin-left: 20px;
     }
   </style>
 </head>
@@ -32,9 +40,18 @@
   <h1>Graph Viewer</h1>
   <p>Please select a graph to view:</p>
   <ul>
-    <li><a href="graph.html">Graph 1</a> - Distances computed with normalized features</li>
-    <li><a href="graph2.html">Graph 2</a> - Distances weighted by the correlation of the feature with ICU</li>
-    <li><a href="graphVAE.html">Graph VAE</a> - Distance computed with the latent features of each sample</li>
+    <li>
+      <a href="graph.html" class="graph-button">Graph 1</a>
+      <p class="graph-description">Distances computed with normalized features</p>
+    </li>
+    <li>
+      <a href="graph2.html" class="graph-button">Graph 2</a>
+      <p class="graph-description">Distances weighted by the correlation of the feature with ICU</p>
+    </li>
+    <li>
+      <a href="graphVAE.html" class="graph-button">Graph VAE</a>
+      <p class="graph-description">Distance computed with the latent features of each sample</p>
+    </li>
   </ul>
 </body>
 </html>
