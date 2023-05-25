@@ -23,15 +23,18 @@
       text-decoration: none;
       color: #0366d6;
     }
+    p {
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
   <h1>Graph Viewer</h1>
   <p>Please select a graph to view:</p>
   <ul>
-    <li><a href="graph.html">Graph 1</a></li>
-    <li><a href="graph2.html">Graph 2</a></li>
-    <li><a href="graphVAE.html">Graph VAE</a></li>
+    <li><a href="graph.html">Graph 1</a> - Distances computed with normalized features</li>
+    <li><a href="graph2.html">Graph 2</a> - Distances weighted by the correlation of the feature with ICU</li>
+    <li><a href="graphVAE.html">Graph VAE</a> - Distance computed with the latent features of each sample</li>
   </ul>
 </body>
 </html>
