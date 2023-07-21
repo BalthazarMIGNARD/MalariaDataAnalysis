@@ -11,16 +11,16 @@ from PIL import Image
 
 
 # Load the CSV file into a DataFrame
-OG_predictive_df = pd.read_csv('../data\predictive_df.csv')
-OG_filtered_df = pd.read_csv('../data\\filtered_df.csv')
+OG_predictive_df = pd.read_csv('data\predictive_df.csv')
+OG_filtered_df = pd.read_csv('data\\filtered_df.csv')
 OG_target_column = OG_filtered_df['ICU']
 
 # Loading the correlations dictionary from the file
-with open('../data//correlations.pkl', 'rb') as file:
+with open('data//correlations.pkl', 'rb') as file:
     correlations = pickle.load(file)
 
 # Step 2: Open the CSV file back into a DataFrame
-feature_info = pd.read_csv("../data/feature_info.csv")
+feature_info = pd.read_csv("data/feature_info.csv")
 
 # Defining the categories for data
 
@@ -107,7 +107,7 @@ feature_info = pd.read_csv("../data/feature_info.csv")
 
 
 # Loading the correlations dictionary from the file
-with open('../data//correlations.pkl', 'rb') as file:
+with open('data//correlations.pkl', 'rb') as file:
     correlations = pickle.load(file)
 
 # Function to remove special characters from a string
@@ -118,16 +118,16 @@ def preprocess(raw_df) :
 
     
     # Load the CSV file into a DataFrame
-    OG_predictive_df = pd.read_csv('../data\predictive_df.csv')
-    OG_filtered_df = pd.read_csv('../data\\filtered_df.csv')
-    OG_target_column = OG_filtered_df['ICU']
+    # OG_predictive_df = pd.read_csv('../data\predictive_df.csv')
+    # OG_filtered_df = pd.read_csv('../data\\filtered_df.csv')
+    # OG_target_column = OG_filtered_df['ICU']
 
     # Loading the correlations dictionary from the file
-    with open('../data//correlations.pkl', 'rb') as file:
-        correlations = pickle.load(file)
+    # with open('../data//correlations.pkl', 'rb') as file:
+    #     correlations = pickle.load(file)
 
     # Step 2: Open the CSV file back into a DataFrame
-    feature_info = pd.read_csv("../data/feature_info.csv")
+    feature_info = pd.read_csv("data/feature_info.csv")
 
     # Defining the categories for data
 
@@ -262,9 +262,13 @@ def preprocess(raw_df) :
 
 def corrIndex2(path_data) : 
     raw_df = pd.read_excel(path_data)
+    input_data_ICU = raw_df['ICU']
+    input_data_ICU = np.nan_to_num(input_data_ICU, nan=-1)
     predictive_df = preprocess(raw_df)
+    input_data_len = predictive_df.shape[0]
 
-    OG_predictive_df = pd.read_csv('../data/corrIndex2Basedf.csv')
+    OG_predictive_df = pd.read_csv('data/corrIndex2Basedf.csv')
+
 
     
 
@@ -276,7 +280,11 @@ def corrIndex2(path_data) :
     new_columns = {col: remove_special_characters(col) for col in OG_predictive_df.columns}
     OG_predictive_df.rename(columns=new_columns, inplace=True)
 
+    merged_df = pd.concat([OG_predictive_df, predictive_df], axis=0)
+    merged_target = np.concatenate((OG_target_column, input_data_ICU))
+
     # Create the corrIndex_df DataFrame
+    merged_corrIndex_df = pd.DataFrame(columns=["rectified_corr_index", "corr_index", "reachable_max", "uncertainty_value"])
     corrIndex_df = pd.DataFrame(columns=["rectified_corr_index", "corr_index", "reachable_max", "uncertainty_value"])
     OG_corrIndex_df = pd.DataFrame(columns=["rectified_corr_index", "corr_index", "reachable_max", "uncertainty_value"])
     
@@ -339,6 +347,39 @@ def corrIndex2(path_data) :
             ignore_index=True
         )
 
+    # Merged df
+
+    abs_max = 0
+    for _, correlation in correlations:
+        abs_max += abs(correlation)
+
+    # Iterate over each sample (row) in predictive_df
+    for _, sample in merged_df.iterrows():
+        corr_index = 0
+        reachable_max = 0
+        uncertinty_value = 0
+        
+        # Iterate over each feature and its correlation value
+        for feature, correlation in correlations:
+            # Check if the value of the sample for this feature is not NaN
+            if not pd.isna(sample[feature]):
+                corr_index += correlation * sample[feature]
+                reachable_max += abs(correlation)
+            else :
+                uncertinty_value += abs(correlation)
+                
+
+        # We are equilibrating with 
+        # corrIndex           >>> maxReachable 
+        # rectified_corrindex >>> absolutMax
+        # So rectified_corrindex = corr_index * abs_max / reachable_max
+
+        # Add a row to corrIndex_df
+        merged_corrIndex_df = merged_corrIndex_df.append(
+            {"rectified_corr_index": corr_index * abs_max / reachable_max, "corr_index": corr_index, "reachable_max": reachable_max, "uncertainty_value": uncertinty_value},
+            ignore_index=True
+        )
+
 
 
     # Assuming you have the corrIndex_df and filtered_df DataFrames
@@ -346,12 +387,13 @@ def corrIndex2(path_data) :
 
     # Create a larger figure
     # plt.figure(figsize=(10, 8))
-    fig, ax = plt.subplots(figsize=(5,4))
 
-    # Scatter plot with red color for samples where filtered_df["ICU"] is 1
-    plt.scatter(OG_corrIndex_df["corr_index"], OG_corrIndex_df["uncertainty_value"],
-                c=["red" if icu == 1 else "blue" for icu in OG_target_column],
-                label="ICU = 1")
+
+    fig, ax = plt.subplots(figsize=(5,4))
+    
+    plt.scatter(merged_corrIndex_df["corr_index"], merged_corrIndex_df["uncertainty_value"],
+            c=["blue" if icu == -1 else "red" if icu == 1 else "green" for icu in merged_target])
+
     
     # plt.scatter(OG_corrIndex_df["corr_index"], OG_corrIndex_df["uncertainty_value"],
     #             c=["red" if icu == 1 else "blue" for icu in OG_filtered_df["ICU"]],
@@ -362,10 +404,12 @@ def corrIndex2(path_data) :
     plt.ylabel("Uncertainty Value")
     plt.title("Scatter Plot of Corr_Index vs. Uncertainty")
 
-    # Annotate each point with its index
-    for i, idx in enumerate(OG_corrIndex_df.index):
-        plt.annotate(idx, (OG_corrIndex_df.loc[idx, "corr_index"], OG_corrIndex_df.loc[idx, "uncertainty_value"]), fontsize=6)
+    # Get the index of the last n samples to annotate
+    last_n_idx = merged_corrIndex_df.index[-input_data_len:]
 
+    # Annotate the last n samples
+    for i, idx in enumerate(last_n_idx):
+        plt.annotate(i, (merged_corrIndex_df.loc[idx, "corr_index"], merged_corrIndex_df.loc[idx, "uncertainty_value"]), fontsize=6)
 
     # Save the plot to a BytesIO object
     buffer = BytesIO()
